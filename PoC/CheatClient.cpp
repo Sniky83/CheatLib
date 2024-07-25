@@ -1,5 +1,6 @@
 #include <iostream>
 #include <windows.h>
+#include <conio.h>
 
 // DLL function pointers
 using GetProcessHandleByNameFn = HANDLE(__cdecl *)(const WCHAR* processName);
@@ -58,6 +59,10 @@ int main() {
 
     CloseHandle(hProcess);
     FreeLibrary(hModule);
+
+    std::cout << std::endl << "Press any key to close the program..." << std::endl;
+    _getch();
+
     return 0;
 }
 
