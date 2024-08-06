@@ -6,7 +6,7 @@
 #include <iostream>
 
 extern "C" {
-    __declspec(dllexport) BOOL WriteCloseShellcodeMemory(HANDLE hProcess, LPVOID shellcodeAddr, SIZE_T offset);
+    __declspec(dllexport) BOOL WriteCloseRemoteThreadMemory(HANDLE hProcess, LPVOID shellcodeAddr, SIZE_T offset);
     __declspec(dllexport) HANDLE GetProcessHandleByName(const WCHAR* processName);
     __declspec(dllexport) CHAR* ReadStringMemory(HANDLE hProcess, LPVOID address, SIZE_T length);
     __declspec(dllexport) BOOL WriteShellcodeMemory(HANDLE hProcess, LPVOID lpAddress, const BYTE* shellcode, SIZE_T size);
@@ -214,7 +214,7 @@ __declspec(dllexport) LPVOID AllocateMemory(HANDLE hProcess, SIZE_T size)
     return lpAddress;
 }
 
-__declspec(dllexport) BOOL WriteCloseShellcodeMemory(HANDLE hProcess, LPVOID shellcodeAddr, SIZE_T offset)
+__declspec(dllexport) BOOL WriteCloseRemoteThreadMemory(HANDLE hProcess, LPVOID shellcodeAddr, SIZE_T offset)
 {
     SIZE_T bytesWritten = 0;
 
@@ -260,13 +260,9 @@ __declspec(dllexport) LPVOID GetRelativeAddr(LPVOID targetAddr, LPVOID callAddr,
 
 __declspec(dllexport) BYTE* GetAddrWithInstruction(LPVOID addr, BYTE instruction)
 {
-    // Correction de la taille de l'adresse pour la copie
     BYTE* addrWithFirstByteArray = new BYTE[sizeof(addr) + 1];
 
-    // Premier octet est l'instruction
     addrWithFirstByteArray[0] = instruction;
-
-    // Copie de l'adresse après l'instruction
     std::memcpy(addrWithFirstByteArray + 1, &addr, sizeof(addr));
 
     return addrWithFirstByteArray;

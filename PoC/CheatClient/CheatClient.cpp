@@ -1,5 +1,5 @@
 #include <iostream>
-#include <windows.h>
+#include <Windows.h>
 #include <conio.h>
 
 // DLL function pointers
@@ -12,7 +12,7 @@ using GetAddrWithInstructionFn = BYTE*(__cdecl *)(LPVOID addr, BYTE instruction)
 using AllocateMemoryFn = LPVOID(__cdecl *)(HANDLE hProcess, SIZE_T size);
 using WriteShellcodeMemoryFn = BOOL(__cdecl *)(HANDLE hProcess, LPVOID lpAddress, const BYTE* shellcode, SIZE_T size);
 using StartRemoteThreadFn = BOOL(__cdecl *)(HANDLE hProcess, LPVOID shellcodeAddr);
-using WriteCloseShellcodeMemoryFn = BOOL(__cdecl *)(HANDLE hProcess, LPVOID shellcodeAddr, SIZE_T offset);
+using WriteCloseRemoteThreadMemoryFn = BOOL(__cdecl *)(HANDLE hProcess, LPVOID shellcodeAddr, SIZE_T offset);
 
 // Global function pointers
 GetProcessHandleByNameFn GetProcessHandleByName = nullptr;
@@ -24,29 +24,32 @@ GetAddrWithInstructionFn GetAddrWithInstruction = nullptr;
 AllocateMemoryFn AllocateMemory = nullptr;
 WriteShellcodeMemoryFn WriteShellcodeMemory = nullptr;
 StartRemoteThreadFn StartRemoteThread = nullptr;
-WriteCloseShellcodeMemoryFn WriteCloseShellcodeMemory = nullptr;
+WriteCloseRemoteThreadMemoryFn WriteCloseRemoteThreadMemory = nullptr;
 
 // Functions prototypes
 void CallPrintConsoleGameFunc(HANDLE hProcess);
-int InitAllFuncPointers(HMODULE hModule);
+LPVOID ToggleGodMode(HANDLE hProcess, BOOL isGodModEnabled);
+INT InitAllFuncPointers(HMODULE hModule);
 
 int main() {
     // Call the CheatLib
-    HMODULE hModule = LoadLibraryA("../Release/CheatLib.dll");
+    HMODULE hModule = LoadLibraryA("../../Release/CheatLib.dll");
     if (hModule == NULL) {
         std::cerr << "Failed to load CheatLib.dll" << std::endl;
         return 1;
     }
 
     // Initialize all function pointers
-    int initSucces = InitAllFuncPointers(hModule);
+    INT initSucces = InitAllFuncPointers(hModule);
 
-    if(initSucces = 0) {
+    if(initSucces == 0) {
         FreeLibrary(hModule);
         return 1;
     }
 
-    // Starting of the code
+    // Loading the process you want to attach
+    // iw3sp.exe -> cod4
+    // ac_client.exe -> assault cube
     HANDLE hProcess = GetProcessHandleByName(L"ac_client.exe");
     if (hProcess == NULL) {
         std::cerr << "Failed to find handle process" << std::endl;
@@ -54,19 +57,59 @@ int main() {
         return 1;
     }
 
+    std::cout << "Welcome the PoC CheatClient" << std::endl << std::endl;
+
     // Call the game function to print a message on the screen
+    // For Assault cube
     CallPrintConsoleGameFunc(hProcess);
+
+    // For cod4
+    //std::cout << std::endl << "Press [F1] to toggle GOD MODE";
+    //std::cout << std::endl << "Press [F12] to exit the program" << std::endl;
+    //BOOL isGodModEnabled = true;
+    //LPVOID allocatedAddr = NULL;
+    //while (true)
+    //{
+    //    if (GetAsyncKeyState(VK_F1) & 1)
+    //    {
+    //        if (allocatedAddr != NULL)
+    //        {
+    //            VirtualFreeEx(hProcess, allocatedAddr, 0, MEM_RELEASE);
+    //        }
+
+    //        if (isGodModEnabled) {
+    //            std::cout << std::endl << "God mode ENABLED" << std::endl;
+    //        }
+    //        else
+    //        {
+    //            std::cout << std::endl << "God mode DISABLED" << std::endl;
+    //        }
+
+    //        allocatedAddr = ToggleGodMode(hProcess, isGodModEnabled);
+    //        isGodModEnabled =! isGodModEnabled;
+    //    }
+
+    //    if (GetAsyncKeyState(VK_F12) & 1)
+    //    {
+    //        std::cout << std::endl << "You just exited the cheat" << std::endl;
+    //        break;
+    //    }
+
+    //    Sleep(10);
+    //}
+
+    #ifdef NDEBUG
+        std::cout << std::endl << "Press any key to close the program..." << std::endl;
+        char res = _getch();
+    #endif
 
     CloseHandle(hProcess);
     FreeLibrary(hModule);
 
-    std::cout << std::endl << "Press any key to close the program..." << std::endl;
-    _getch();
-
     return 0;
 }
 
-int InitAllFuncPointers(HMODULE hModule)
+INT InitAllFuncPointers(HMODULE hModule)
 {
     // Check all DLL funcs if error
     GetProcessHandleByName = (GetProcessHandleByNameFn)GetProcAddress(hModule, "GetProcessHandleByName");
@@ -132,9 +175,9 @@ int InitAllFuncPointers(HMODULE hModule)
         return 0;
     }
 
-    WriteCloseShellcodeMemory = (WriteCloseShellcodeMemoryFn)GetProcAddress(hModule, "WriteCloseShellcodeMemory");
-    if (WriteCloseShellcodeMemory == NULL) {
-        std::cerr << "Failed to get address of WriteCloseShellcodeMemory. Error: " << GetLastError() << std::endl;
+    WriteCloseRemoteThreadMemory = (WriteCloseRemoteThreadMemoryFn)GetProcAddress(hModule, "WriteCloseRemoteThreadMemory");
+    if (WriteCloseRemoteThreadMemory == NULL) {
+        std::cerr << "Failed to get address of WriteCloseRemoteThreadMemory. Error: " << GetLastError() << std::endl;
         FreeLibrary(hModule);
         return 0;
     }
@@ -142,6 +185,8 @@ int InitAllFuncPointers(HMODULE hModule)
     return 1;
 }
 
+/// @brief Function to call the print text in the game console in assault cube
+/// @param hProcess 
 void CallPrintConsoleGameFunc(HANDLE hProcess)
 {
     // Write the first param of the func into new memory loc
@@ -163,7 +208,7 @@ void CallPrintConsoleGameFunc(HANDLE hProcess)
     // Allocate new memory to write the full shellcode
     LPVOID addrAllocShellcode = AllocateMemory(hProcess, 10);
     // Get the relative address for the printConsoleFunc
-    LPVOID relativeAddr = GetRelativeAddr(addrAllocShellcode, printConsoleFunc, sizeof(addrPushInstruction) + 1);
+    LPVOID relativeAddr = GetRelativeAddr(addrAllocShellcode, printConsoleFunc, 5);
     // Get the address with call instruction in front
     BYTE* addrCallInstruction = GetAddrWithInstruction(relativeAddr, 0xE8);
 
@@ -183,7 +228,7 @@ void CallPrintConsoleGameFunc(HANDLE hProcess)
 
     // Close the shellcode properly in ASM to exit the remote thread after the shellcode inserted
     // Only use it if you're using a remote thread (StartRemoteThread) otherwise don't call this func
-    WriteCloseShellcodeMemory(hProcess, addrAllocShellcode, 10);
+    WriteCloseRemoteThreadMemory(hProcess, addrAllocShellcode, 10);
 
     // Execute the shellcode written in the new memory region to load the printConsoleFunc
     BOOL isRemoteThreadStarted = StartRemoteThread(hProcess, addrAllocShellcode);
@@ -192,6 +237,42 @@ void CallPrintConsoleGameFunc(HANDLE hProcess)
         std::cout << "PrintConsoleFunc has been called !" << std::endl;
     }
     else {
-        std::cerr << "Fail to start the remote threadto call the PrintConsoleFunc. Error: " << GetLastError() << std::endl;
+        std::cerr << "Fail to start the remote thread to call the PrintConsoleFunc. Error: " << GetLastError() << std::endl;
+    }
+
+    // Free the memory region allocated after the call
+    VirtualFreeEx(hProcess, addrAllocShellcode, 0, MEM_RELEASE);
+}
+
+/// @brief Function to toggle god mode for cod 4
+/// @param hProcess 
+LPVOID ToggleGodMode(HANDLE hProcess, BOOL isGodModEnabled)
+{
+    LPVOID adrrTakeDmg = (LPVOID)0x4AE5FE;
+    if (isGodModEnabled) {
+        //BYTE originalShellcode[] = { 0x89, 0x95, 0x44, 0x01, 0x00, 0x00 };
+        LPVOID hookShellcodeAllocMemAddr = AllocateMemory(hProcess, 100);
+        std::cout << "Addr new mem allocated : " << hookShellcodeAllocMemAddr << std::endl;
+        LPVOID relativeAddrNewAlloc = GetRelativeAddr(adrrTakeDmg, hookShellcodeAllocMemAddr, 0);
+        std::cout << "Relative addr of mem allocated : " << relativeAddrNewAlloc << std::endl;
+        BYTE* jmpIntoHookAllocInstruction = GetAddrWithInstruction(relativeAddrNewAlloc, 0xE9);
+        WriteShellcodeMemory(hProcess, adrrTakeDmg, jmpIntoHookAllocInstruction, 5);
+        BYTE endProperlyEditJne[] = { 0x90, 0xEB, 0x16 };
+        WriteShellcodeMemory(hProcess, (LPVOID)((char*)adrrTakeDmg + 0x5), endProperlyEditJne, sizeof(endProperlyEditJne));
+        BYTE customShellcode[] = { 0x83, 0xBD, 0x28, 0x01, 0x00, 0x00, 0x00, 0x74, 0x0A, 0x90, 0x90, 0x90, 0x90, 0x89, 0x95, 0x44, 0x01, 0x00, 0x00 };
+        WriteShellcodeMemory(hProcess, hookShellcodeAllocMemAddr, customShellcode, sizeof(customShellcode));
+        LPVOID relativeAddrJmp = GetRelativeAddr((LPVOID)((char*)hookShellcodeAllocMemAddr + sizeof(customShellcode)), (LPVOID)((char*)adrrTakeDmg + 0x5), 0);
+        std::cout << "Relative addr of mem call func takeDmg : " << relativeAddrJmp << std::endl;
+        BYTE* jmpBackIntoFuncInstruction = GetAddrWithInstruction(relativeAddrJmp, 0xE9);
+        WriteShellcodeMemory(hProcess, (LPVOID)((char*)hookShellcodeAllocMemAddr + sizeof(customShellcode)), jmpBackIntoFuncInstruction, 5);
+
+        return hookShellcodeAllocMemAddr;
+    }
+    else 
+    {
+        BYTE originalShellcode[] = { 0x89, 0x95, 0x44, 0x01, 0x00, 0x00 };
+        WriteShellcodeMemory(hProcess, adrrTakeDmg, originalShellcode, sizeof(originalShellcode));
+
+        return NULL;
     }
 }

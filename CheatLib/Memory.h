@@ -9,7 +9,7 @@
 #ifdef __cplusplus
     extern "C" {
 #endif
-MEMORY_API BOOL WriteCloseShellcodeMemory(HANDLE hProcess, LPVOID shellcodeAddr, SIZE_T offset);
+MEMORY_API BOOL WriteCloseRemoteThreadMemory(HANDLE hProcess, LPVOID shellcodeAddr, SIZE_T offset);
 MEMORY_API BOOL StartRemoteThread(HANDLE hProcess, LPVOID shellcodeAddr);
 MEMORY_API HANDLE GetProcessHandleByName(const WCHAR* processName);
 MEMORY_API BOOL ExecuteShellcode(HANDLE hProcess, const BYTE* shellcode, SIZE_T shellcodeSize);
@@ -30,7 +30,7 @@ MEMORY_API BYTE* GetAddrWithInstruction(LPVOID addr, BYTE instruction);
     }
 #endif
 
-// Template avec décoration donc les noms peuvent varier chez le client
+// Template with decoration
 template <typename T>
 MEMORY_API T ReadMemory(HANDLE hProcess, LPVOID address);
 template <typename T>
