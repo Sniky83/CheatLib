@@ -250,7 +250,6 @@ LPVOID ToggleGodMode(HANDLE hProcess, BOOL isGodModEnabled)
 {
     LPVOID adrrTakeDmg = (LPVOID)0x4AE5FE;
     if (isGodModEnabled) {
-        //BYTE originalShellcode[] = { 0x89, 0x95, 0x44, 0x01, 0x00, 0x00 };
         LPVOID hookShellcodeAllocMemAddr = AllocateMemory(hProcess, 100);
         std::cout << "Addr new mem allocated : " << hookShellcodeAllocMemAddr << std::endl;
         LPVOID relativeAddrNewAlloc = GetRelativeAddr(adrrTakeDmg, hookShellcodeAllocMemAddr, 0);
