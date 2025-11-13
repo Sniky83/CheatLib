@@ -49,7 +49,7 @@ int main() {
 
     // Loading the process you want to attach
     // iw3sp.exe -> Call Of Duty Modern Warfare
-    // ac_client.exe -> assault cube
+    // ac_client.exe -> Assault Cube
     HANDLE hProcess = GetProcessHandleByName(L"ac_client.exe");
     if (hProcess == NULL) {
         std::cerr << "Failed to find handle process" << std::endl;
@@ -60,7 +60,7 @@ int main() {
     std::cout << "Welcome the PoC CheatClient" << std::endl << std::endl;
 
     // Call the game function to print a message on the screen
-    // For Assault cube
+    // For Assault Cube
     CallPrintConsoleGameFunc(hProcess);
 
     // For Call Of Duty Modern Warfare
