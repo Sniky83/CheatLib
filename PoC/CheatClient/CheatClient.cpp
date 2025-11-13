@@ -63,7 +63,7 @@ int main() {
     // For Assault cube
     CallPrintConsoleGameFunc(hProcess);
 
-    // For cod4
+    // For Call Of Duty Modern Warfare
     //std::cout << std::endl << "Press [F1] to toggle GOD MODE";
     //std::cout << std::endl << "Press [F12] to exit the program" << std::endl;
     //BOOL isGodModEnabled = true;
@@ -109,6 +109,11 @@ int main() {
     return 0;
 }
 
+/// <summary>
+/// Initialize all function pointers from the DLL
+/// </summary>
+/// <param name="hModule"></param>
+/// <returns></returns>
 INT InitAllFuncPointers(HMODULE hModule)
 {
     // Check all DLL funcs if error
@@ -185,8 +190,10 @@ INT InitAllFuncPointers(HMODULE hModule)
     return 1;
 }
 
-/// @brief Function to call the print text in the game console in assault cube
-/// @param hProcess 
+/// <summary>
+/// Function to call the print text in the game console in assault cube
+/// </summary>
+/// <param name="hProcess"></param>
 void CallPrintConsoleGameFunc(HANDLE hProcess)
 {
     // Write the first param of the func into new memory loc
@@ -203,7 +210,7 @@ void CallPrintConsoleGameFunc(HANDLE hProcess)
     CHAR* messageInMem = ReadStringMemory(hProcess, stringLocAddr, strlen(message));
     std::cout << "Message pushed : " << messageInMem << std::endl;
 
-    // Addr of my printConsoleFunc in my game memory
+    // Address of my PrintConsoleFunc in my game memory
     LPVOID printConsoleFunc = (LPVOID)0x004DAD50;
     // Allocate new memory to write the full shellcode
     LPVOID addrAllocShellcode = AllocateMemory(hProcess, 10);
@@ -230,7 +237,7 @@ void CallPrintConsoleGameFunc(HANDLE hProcess)
     // Only use it if you're using a remote thread (StartRemoteThread) otherwise don't call this func
     WriteCloseRemoteThreadMemory(hProcess, addrAllocShellcode, 10);
 
-    // Execute the shellcode written in the new memory region to load the printConsoleFunc
+    // Execute the shellcode written in the new memory region to load the PrintConsoleFunc
     BOOL isRemoteThreadStarted = StartRemoteThread(hProcess, addrAllocShellcode);
 
     if(isRemoteThreadStarted) {
@@ -244,16 +251,20 @@ void CallPrintConsoleGameFunc(HANDLE hProcess)
     VirtualFreeEx(hProcess, addrAllocShellcode, 0, MEM_RELEASE);
 }
 
-/// @brief Function to toggle god mode for cod 4
-/// @param hProcess 
+/// <summary>
+/// Function to toggle god mode for Call Of Duty Modern Warfare
+/// </summary>
+/// <param name="hProcess"></param>
+/// <param name="isGodModEnabled"></param>
+/// <returns></returns>
 LPVOID ToggleGodMode(HANDLE hProcess, BOOL isGodModEnabled)
 {
     LPVOID adrrTakeDmg = (LPVOID)0x4AE5FE;
     if (isGodModEnabled) {
         LPVOID hookShellcodeAllocMemAddr = AllocateMemory(hProcess, 100);
-        std::cout << "Addr new mem allocated : " << hookShellcodeAllocMemAddr << std::endl;
+        std::cout << "Address new memory allocated : " << hookShellcodeAllocMemAddr << std::endl;
         LPVOID relativeAddrNewAlloc = GetRelativeAddr(adrrTakeDmg, hookShellcodeAllocMemAddr, 0);
-        std::cout << "Relative addr of mem allocated : " << relativeAddrNewAlloc << std::endl;
+        std::cout << "Relative address of memmory allocated : " << relativeAddrNewAlloc << std::endl;
         BYTE* jmpIntoHookAllocInstruction = GetAddrWithInstruction(relativeAddrNewAlloc, 0xE9);
         WriteShellcodeMemory(hProcess, adrrTakeDmg, jmpIntoHookAllocInstruction, 5);
         BYTE endProperlyEditJne[] = { 0x90, 0xEB, 0x16 };
@@ -261,7 +272,7 @@ LPVOID ToggleGodMode(HANDLE hProcess, BOOL isGodModEnabled)
         BYTE customShellcode[] = { 0x83, 0xBD, 0x28, 0x01, 0x00, 0x00, 0x00, 0x74, 0x0A, 0x90, 0x90, 0x90, 0x90, 0x89, 0x95, 0x44, 0x01, 0x00, 0x00 };
         WriteShellcodeMemory(hProcess, hookShellcodeAllocMemAddr, customShellcode, sizeof(customShellcode));
         LPVOID relativeAddrJmp = GetRelativeAddr((LPVOID)((char*)hookShellcodeAllocMemAddr + sizeof(customShellcode)), (LPVOID)((char*)adrrTakeDmg + 0x5), 0);
-        std::cout << "Relative addr of mem call func takeDmg : " << relativeAddrJmp << std::endl;
+        std::cout << "Relative address of memory call function TakeDamages : " << relativeAddrJmp << std::endl;
         BYTE* jmpBackIntoFuncInstruction = GetAddrWithInstruction(relativeAddrJmp, 0xE9);
         WriteShellcodeMemory(hProcess, (LPVOID)((char*)hookShellcodeAllocMemAddr + sizeof(customShellcode)), jmpBackIntoFuncInstruction, 5);
 
