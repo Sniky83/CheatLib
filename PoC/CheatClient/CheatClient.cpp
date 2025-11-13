@@ -48,7 +48,7 @@ int main() {
     }
 
     // Loading the process you want to attach
-    // iw3sp.exe -> cod4
+    // iw3sp.exe -> Call Of Duty Modern Warfare
     // ac_client.exe -> assault cube
     HANDLE hProcess = GetProcessHandleByName(L"ac_client.exe");
     if (hProcess == NULL) {
